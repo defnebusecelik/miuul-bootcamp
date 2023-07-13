@@ -3,5 +3,5 @@
 MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ## 1. Hafta - Python Programming for Data Science
-#
-[Python Exercises]()
+
+[Python Exercises](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/pythonExercises.py)
