@@ -11,3 +11,6 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 ## 2. Hafta - Python Programming for Data Science
 
 [Pandas Exercises](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/pandasExercises.py)
+
+[Kural Tabanlı Sınıflandırma ile Potansiyel Müşteri Getirisi Hesaplama](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/kural_tabanli_s%C4%B1n%C4%B1flandirma.py)
+
