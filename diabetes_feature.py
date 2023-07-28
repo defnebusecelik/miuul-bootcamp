@@ -27,6 +27,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score,roc_auc_score
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -301,6 +305,8 @@ def outlier_thresholds(dataframe, col_name, q1=0.25, q3=0.75):
     low_limit = quartile1 - 1.5 * interquantile_range
     return low_limit, up_limit
 
+for col in num_cols:
+    outlier_thresholds(df,col)
 def check_outlier(dataframe, col_name):
     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
     if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
@@ -454,4 +460,248 @@ plt.show()
 
 
 #Görev 2 : Feature Engineering
+
 #Adım 1: Eksik ve aykırı değerler için gerekli işlemleri yapınız.
+zero_columns = [col for col in df.columns if (df[col].min() == 0 and col not in ["Pregnancies", "Outcome"])]
+print(zero_columns)
+'''
+['SkinThickness', 'Insulin']
+'''
+for col in zero_columns:
+    df[col] = np.where(df[col] == 0, np.nan, df[col])
+
+print(df.isnull().sum())
+'''
+Pregnancies                   0
+Glucose                       0
+BloodPressure                 0
+SkinThickness               227
+Insulin                     374
+BMI                           0
+DiabetesPedigreeFunction      0
+Age                           0
+Outcome                       0
+dtype: int64
+'''
+na_columns = missing_values_table(df, na_name=True)
+print(na_columns)
+'''
+               n_miss  ratio
+Insulin           374  48.70
+SkinThickness     227  29.56
+['SkinThickness', 'Insulin']
+'''
+for col in zero_columns:
+    df.loc[df[col].isnull(), col] = df[col].median()
+
+#Adım 2: Yeni değişkenler oluşturunuz.
+
+def missing_vs_target(dataframe, target, na_columns):
+    temp_df = dataframe.copy()
+    for col in na_columns:
+        temp_df[col + '_NA_FLAG'] = np.where(temp_df[col].isnull(), 1, 0)
+    na_flags = temp_df.loc[:, temp_df.columns.str.contains("_NA_")].columns
+    for col in na_flags:
+        print(pd.DataFrame({"TARGET_MEAN": temp_df.groupby(col)[target].mean(),
+                            "Count": temp_df.groupby(col)[target].count()}), end="\n\n\n")
+
+
+missing_vs_target(df, "Outcome", na_columns)
+'''
+                       TARGET_MEAN  Count
+SkinThickness_NA_FLAG                    
+0                         0.332717    541
+1                         0.387665    227
+
+
+                 TARGET_MEAN  Count
+Insulin_NA_FLAG                    
+0                   0.329949    394
+1                   0.368984    374
+
+'''
+
+#Adım 2: Yeni değişkenler oluşturunuz.
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome
+0          6.0    148.0             72           35.0      NaN  33.6                     0.627  50.0        1
+1          1.0     85.0             66           29.0      NaN  26.6                     0.351  31.0        0
+2          8.0    183.0             64            NaN      NaN  23.3                     0.672  32.0        1
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1
+'''
+df.loc[(df["Age"] >= 21) & (df["Age"] < 50), "NEW_AGE"] = "mature"
+df.loc[(df["Age"] >= 50), "NEW_AGE"] = "senior"
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome NEW_AGE
+0          6.0    148.0             72           35.0      NaN  33.6                     0.627  50.0        1  senior
+1          1.0     85.0             66           29.0      NaN  26.6                     0.351  31.0        0  mature
+2          8.0    183.0             64            NaN      NaN  23.3                     0.672  32.0        1  mature
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0  mature
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1  mature
+'''
+df['NEW_BMI'] = pd.cut(x=df['BMI'], bins=[0, 18.5, 24.9, 29.9, 100],labels=["Underweight", "Healthy", "Overweight", "Obese"])
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome NEW_AGE     NEW_BMI
+0          6.0    148.0             72           35.0      NaN  33.6                     0.627  50.0        1  senior       Obese
+1          1.0     85.0             66           29.0      NaN  26.6                     0.351  31.0        0  mature  Overweight
+2          8.0    183.0             64            NaN      NaN  23.3                     0.672  32.0        1  mature     Healthy
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0  mature  Overweight
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1  mature       Obese
+'''
+
+df.loc[(df["BMI"] < 18.5) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_BMI_NOM"] = "underweightmature"
+df.loc[(df["BMI"] < 18.5) & (df["Age"] >= 50), "NEW_AGE_BMI_NOM"] = "underweightsenior"
+df.loc[((df["BMI"] >= 18.5) & (df["BMI"] < 25)) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_BMI_NOM"] = "healthymature"
+df.loc[((df["BMI"] >= 18.5) & (df["BMI"] < 25)) & (df["Age"] >= 50), "NEW_AGE_BMI_NOM"] = "healthysenior"
+df.loc[((df["BMI"] >= 25) & (df["BMI"] < 30)) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_BMI_NOM"] = "overweightmature"
+df.loc[((df["BMI"] >= 25) & (df["BMI"] < 30)) & (df["Age"] >= 50), "NEW_AGE_BMI_NOM"] = "overweightsenior"
+df.loc[(df["BMI"] > 18.5) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_BMI_NOM"] = "obesemature"
+df.loc[(df["BMI"] > 18.5) & (df["Age"] >= 50), "NEW_AGE_BMI_NOM"] = "obesesenior"
+print(df.head())
+'''
+ Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome NEW_AGE     NEW_BMI NEW_AGE_BMI_NOM
+0          6.0    148.0             72           35.0      NaN  33.6                     0.627  50.0        1  senior       Obese     obesesenior
+1          1.0     85.0             66           29.0      NaN  26.6                     0.351  31.0        0  mature  Overweight     obesemature
+2          8.0    183.0             64            NaN      NaN  23.3                     0.672  32.0        1  mature     Healthy     obesemature
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0  mature  Overweight     obesemature
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1  mature       Obese     obesemature
+'''
+df.loc[(df["Glucose"] < 70) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_GLUCOSE_NOM"] = "lowmature"
+df.loc[(df["Glucose"] < 70) & (df["Age"] >= 50), "NEW_AGE_GLUCOSE_NOM"] = "lowsenior"
+df.loc[((df["Glucose"] >= 70) & (df["Glucose"] < 100)) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_GLUCOSE_NOM"] = "normalmature"
+df.loc[((df["Glucose"] >= 70) & (df["Glucose"] < 100)) & (df["Age"] >= 50), "NEW_AGE_GLUCOSE_NOM"] = "normalsenior"
+df.loc[((df["Glucose"] >= 100) & (df["Glucose"] <= 125)) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_GLUCOSE_NOM"] = "hiddenmature"
+df.loc[((df["Glucose"] >= 100) & (df["Glucose"] <= 125)) & (df["Age"] >= 50), "NEW_AGE_GLUCOSE_NOM"] = "hiddensenior"
+df.loc[(df["Glucose"] > 125) & ((df["Age"] >= 21) & (df["Age"] < 50)), "NEW_AGE_GLUCOSE_NOM"] = "highmature"
+df.loc[(df["Glucose"] > 125) & (df["Age"] >= 50), "NEW_AGE_GLUCOSE_NOM"] = "highsenior"
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome NEW_AGE     NEW_BMI NEW_AGE_BMI_NOM NEW_AGE_GLUCOSE_NOM
+0          6.0    148.0             72           35.0    125.0  33.6                     0.627  50.0        1  senior       Obese     obesesenior          highsenior
+1          1.0     85.0             66           29.0    125.0  26.6                     0.351  31.0        0  mature  Overweight     obesemature        normalmature
+2          8.0    183.0             64           29.0    125.0  23.3                     0.672  32.0        1  mature     Healthy     obesemature          highmature
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0  mature  Overweight     obesemature        normalmature
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1  mature       Obese     obesemature          highmature
+
+'''
+
+#Adım 3: Encoding işlemlerini gerçekleştiriniz.
+cat_cols, num_cols, cat_but_car = grab_col_names(df)
+'''
+Observations: 768
+Variables: 12
+cat_cols: 4
+num_cols: 8
+cat_but_car: 0
+num_but_cat: 2
+'''
+def label_encoder(dataframe, binary_col):
+    labelencoder = LabelEncoder()
+    dataframe[binary_col] = labelencoder.fit_transform(dataframe[binary_col])
+    return dataframe
+binary_cols = [col for col in df.columns if df[col].dtypes == "O" and df[col].nunique() == 2]
+for col in binary_cols:
+    df = label_encoder(df, col)
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome  NEW_AGE     NEW_BMI NEW_AGE_BMI_NOM NEW_AGE_GLUCOSE_NOM
+0          6.0    148.0             72           35.0    125.0  33.6                     0.627  50.0        1        1       Obese     obesesenior          highsenior
+1          1.0     85.0             66           29.0    125.0  26.6                     0.351  31.0        0        0  Overweight     obesemature        normalmature
+2          8.0    183.0             64           29.0    125.0  23.3                     0.672  32.0        1        0     Healthy     obesemature          highmature
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0        0  Overweight     obesemature        normalmature
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1        0       Obese     obesemature          highmature
+'''
+print(binary_cols)     #['NEW_AGE'] senior->1 mature->0
+
+cat_cols = [col for col in cat_cols if col not in binary_cols and col not in ["Outcome"]]
+def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
+    dataframe = pd.get_dummies(dataframe, columns=categorical_cols, drop_first=drop_first)
+    return dataframe
+df = one_hot_encoder(df, cat_cols, drop_first=True)
+print(df.head())
+'''
+   Pregnancies  Glucose  BloodPressure  SkinThickness  Insulin   BMI  DiabetesPedigreeFunction   Age  Outcome  NEW_AGE  NEW_AGE_BMI_NOM_obesesenior  NEW_AGE_BMI_NOM_underweightmature  NEW_AGE_BMI_NOM_underweightsenior  NEW_AGE_GLUCOSE_NOM_hiddensenior  NEW_AGE_GLUCOSE_NOM_highmature  NEW_AGE_GLUCOSE_NOM_highsenior  NEW_AGE_GLUCOSE_NOM_lowmature  NEW_AGE_GLUCOSE_NOM_lowsenior  NEW_AGE_GLUCOSE_NOM_normalmature  NEW_AGE_GLUCOSE_NOM_normalsenior  NEW_BMI_Healthy  NEW_BMI_Overweight  NEW_BMI_Obese
+0          6.0    148.0             72           35.0    125.0  33.6                     0.627  50.0        1        1                            1                                  0                                  0                                 0                               0                               1                              0                              0                                 0                                 0                0                   0              1
+1          1.0     85.0             66           29.0    125.0  26.6                     0.351  31.0        0        0                            0                                  0                                  0                                 0                               0                               0                              0                              0                                 1                                 0                0                   1              0
+2          8.0    183.0             64           29.0    125.0  23.3                     0.672  32.0        1        0                            0                                  0                                  0                                 0                               1                               0                              0                              0                                 0                                 0                1                   0              0
+3          1.0     89.0             66           23.0     94.0  28.1                     0.167  21.0        0        0                            0                                  0                                  0                                 0                               0                               0                              0                              0                                 1                                 0                0                   1              0
+4          0.0    137.0             40           35.0    168.0  43.1                     1.200  33.0        1        0                            0                                  0                                  0                                 0                               1                               0                              0                              0                                 0                                 0                0                   0              1
+ '''
+
+#Adım 4: Numerik değişkenler için standartlaştırma yapınız.
+scaler = StandardScaler()
+df[num_cols] = scaler.fit_transform(df[num_cols])
+print(df.head())
+'''
+   Pregnancies   Glucose  BloodPressure  SkinThickness   Insulin       BMI  DiabetesPedigreeFunction       Age  Outcome  NEW_AGE  NEW_AGE_BMI_NOM_obesesenior  NEW_AGE_BMI_NOM_underweightmature  NEW_AGE_BMI_NOM_underweightsenior  NEW_AGE_GLUCOSE_NOM_hiddensenior  NEW_AGE_GLUCOSE_NOM_highmature  NEW_AGE_GLUCOSE_NOM_highsenior  NEW_AGE_GLUCOSE_NOM_lowmature  NEW_AGE_GLUCOSE_NOM_lowsenior  NEW_AGE_GLUCOSE_NOM_normalmature  NEW_AGE_GLUCOSE_NOM_normalsenior  NEW_BMI_Healthy  NEW_BMI_Overweight  NEW_BMI_Obese
+0     0.647150  0.861926       0.092691       0.686889 -0.156977  0.209359                  0.588927  1.445691        1        1                            1                                  0                                  0                                 0                               0                               1                              0                              0                                 0                                 0                0                   0              1
+1    -0.848970 -1.159433      -0.330201      -0.009674 -0.156977 -0.784254                 -0.378101 -0.189304        0        0                            0                                  0                                  0                                 0                               0                               0                              0                              0                                 1                                 0                0                   1              0
+2     1.245598  1.984903      -0.471166      -0.009674 -0.156977 -1.252672                  0.746595 -0.103252        1        0                            0                                  0                                  0                                 0                               1                               0                              0                              0                                 0                                 0                1                   0              0
+3    -0.848970 -1.031093      -0.330201      -0.706238 -0.667869 -0.571337                 -1.022787 -1.049828        0        0                            0                                  0                                  0                                 0                               0                               0                              0                              0                                 1                                 0                0                   1              0
+4    -1.148194  0.508990      -2.162737       0.686889  0.551680  1.557835                  2.596563 -0.017199        1        0                            0                                  0                                  0                                 0                               1                               0                              0                              0                                 0                                 0                0                   0              1
+'''
+
+#Adım 5: Model oluşturunuz
+
+y = df["Outcome"]
+X = df.drop("Outcome", axis=1)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=13)
+rf_model = RandomForestClassifier(random_state=46).fit(X_train, y_train)
+y_pred = rf_model.predict(X_test)
+print(f"Accuracy: {round(accuracy_score(y_pred, y_test), 2)}")
+print(f"Recall: {round(recall_score(y_pred,y_test),3)}")
+print(f"Precision: {round(precision_score(y_pred,y_test), 2)}")
+print(f"F1: {round(f1_score(y_pred,y_test), 2)}")
+print(f"Auc: {round(roc_auc_score(y_pred,y_test), 2)}")
+'''
+Accuracy: 0.76
+Recall: 0.718
+Precision: 0.59
+F1: 0.65
+Auc: 0.75
+'''
+def plot_importance(model, features, num=len(X), save=False):
+    feature_imp = pd.DataFrame({'Value': model.feature_importances_, 'Feature': features.columns})
+    print(feature_imp.sort_values("Value",ascending=False))
+    plt.figure(figsize=(10, 10))
+    sns.set(font_scale=1)
+    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value",
+                                                                     ascending=False)[0:num])
+    plt.title('Features')
+    plt.tight_layout()
+    plt.show(block=True)
+    if save:
+        plt.savefig('importance.png')
+
+plot_importance(rf_model, X)
+'''
+       Value                            Feature
+1   0.200011                            Glucose
+7   0.125783                                Age
+5   0.124035                                BMI
+6   0.103365           DiabetesPedigreeFunction
+0   0.082187                        Pregnancies
+2   0.080579                      BloodPressure
+4   0.067745                            Insulin
+3   0.066302                      SkinThickness
+13  0.048212     NEW_AGE_GLUCOSE_NOM_highmature
+17  0.029233   NEW_AGE_GLUCOSE_NOM_normalmature
+21  0.027131                      NEW_BMI_Obese
+19  0.010983                    NEW_BMI_Healthy
+20  0.007578                 NEW_BMI_Overweight
+8   0.005791                            NEW_AGE
+9   0.005663        NEW_AGE_BMI_NOM_obesesenior
+14  0.005539     NEW_AGE_GLUCOSE_NOM_highsenior
+12  0.004403   NEW_AGE_GLUCOSE_NOM_hiddensenior
+18  0.002039   NEW_AGE_GLUCOSE_NOM_normalsenior
+15  0.001861      NEW_AGE_GLUCOSE_NOM_lowmature
+11  0.000952  NEW_AGE_BMI_NOM_underweightsenior
+10  0.000610  NEW_AGE_BMI_NOM_underweightmature
+16  0.000000      NEW_AGE_GLUCOSE_NOM_lowsenior
+
+'''
