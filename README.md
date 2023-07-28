@@ -16,6 +16,7 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ## 3. Hafta - Feature Engineering
 
-![dia](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/4a5b06f6-412b-4951-8a19-38f25ebda082)
+![dia](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/c838dd99-9aa8-4ed8-a83f-ce6c26e33850)
+
 
 
