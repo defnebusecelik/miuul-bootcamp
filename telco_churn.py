@@ -551,4 +551,133 @@ plt.show()
 
 
 #Görev 2 : Feature Engineering
-#Adım 1: Eksik ve aykırı gözlemler için gerekli işlemleri yapını
+#Adım 1: Eksik ve aykırı gözlemler için gerekli işlemleri yapınız.
+
+print(df.isnull().sum())
+'''
+customerID          0
+gender              0
+SeniorCitizen       0
+Partner             0
+Dependents          0
+tenure              0
+PhoneService        0
+MultipleLines       0
+InternetService     0
+OnlineSecurity      0
+OnlineBackup        0
+DeviceProtection    0
+TechSupport         0
+StreamingTV         0
+StreamingMovies     0
+Contract            0
+PaperlessBilling    0
+PaymentMethod       0
+MonthlyCharges      0
+TotalCharges        0
+Churn               0
+dtype: int64
+'''
+def missing_values_table(dataframe, na_name=False):
+    na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
+    n_miss = dataframe[na_columns].isnull().sum().sort_values(ascending=False)
+    ratio = (dataframe[na_columns].isnull().sum() / dataframe.shape[0] * 100).sort_values(ascending=False)
+    missing_df = pd.concat([n_miss, np.round(ratio, 2)], axis=1, keys=['n_miss', 'ratio'])
+    print(missing_df, end="\n")
+    if na_name:
+        return na_columns
+
+na_columns = missing_values_table(df, na_name=True)   #Empty DataFrame
+
+print((df[df.columns] == " ").sum())
+'''
+customerID           0
+gender               0
+SeniorCitizen        0
+Partner              0
+Dependents           0
+tenure               0
+PhoneService         0
+MultipleLines        0
+InternetService      0
+OnlineSecurity       0
+OnlineBackup         0
+DeviceProtection     0
+TechSupport          0
+StreamingTV          0
+StreamingMovies      0
+Contract             0
+PaperlessBilling     0
+PaymentMethod        0
+MonthlyCharges       0
+TotalCharges        11
+Churn                0
+dtype: int64
+'''
+print(df.loc[(df["TotalCharges"] == " ")].head())
+'''
+      customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService     MultipleLines InternetService       OnlineSecurity         OnlineBackup     DeviceProtection          TechSupport          StreamingTV      StreamingMovies  Contract PaperlessBilling              PaymentMethod  MonthlyCharges TotalCharges Churn
+488   4472-LVYGI  Female              0     Yes        Yes       0           No  No phone service             DSL                  Yes                   No                  Yes                  Yes                  Yes                   No  Two year              Yes  Bank transfer (automatic)           52.55                 No
+753   3115-CZMZD    Male              0      No        Yes       0          Yes                No              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           20.25                 No
+936   5709-LVOEQ  Female              0     Yes        Yes       0          Yes                No             DSL                  Yes                  Yes                  Yes                   No                  Yes                  Yes  Two year               No               Mailed check           80.85                 No
+1082  4367-NUYAO    Male              0     Yes        Yes       0          Yes               Yes              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           25.75                 No
+1340  1371-DWPAZ  Female              0     Yes        Yes       0           No  No phone service             DSL                  Yes                  Yes                  Yes                  Yes                  Yes                   No  Two year               No    Credit card (automatic)           56.05                 No
+'''
+print(df.loc[df["TotalCharges"] == " "].index)
+'''
+Int64Index([488, 753, 936, 1082, 1340, 3331, 3826, 4380, 5218, 6670, 6754], dtype='int64')
+'''
+nan_index = df.loc[df["TotalCharges"] == " "].index
+df.loc[nan_index, "TotalCharges"] =df.iloc[nan_index]["MonthlyCharges"].values
+print(df.iloc[nan_index])
+'''
+      customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService     MultipleLines InternetService       OnlineSecurity         OnlineBackup     DeviceProtection          TechSupport          StreamingTV      StreamingMovies  Contract PaperlessBilling              PaymentMethod  MonthlyCharges TotalCharges Churn
+488   4472-LVYGI  Female              0     Yes        Yes       0           No  No phone service             DSL                  Yes                   No                  Yes                  Yes                  Yes                   No  Two year              Yes  Bank transfer (automatic)           52.55        52.55    No
+753   3115-CZMZD    Male              0      No        Yes       0          Yes                No              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           20.25        20.25    No
+936   5709-LVOEQ  Female              0     Yes        Yes       0          Yes                No             DSL                  Yes                  Yes                  Yes                   No                  Yes                  Yes  Two year               No               Mailed check           80.85        80.85    No
+1082  4367-NUYAO    Male              0     Yes        Yes       0          Yes               Yes              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           25.75        25.75    No
+1340  1371-DWPAZ  Female              0     Yes        Yes       0           No  No phone service             DSL                  Yes                  Yes                  Yes                  Yes                  Yes                   No  Two year               No    Credit card (automatic)           56.05        56.05    No
+3331  7644-OMVMY    Male              0     Yes        Yes       0          Yes                No              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           19.85        19.85    No
+3826  3213-VVOLG    Male              0     Yes        Yes       0          Yes               Yes              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           25.35        25.35    No
+4380  2520-SGTTA  Female              0     Yes        Yes       0          Yes                No              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  Two year               No               Mailed check           20.00         20.0    No
+5218  2923-ARZLG    Male              0     Yes        Yes       0          Yes                No              No  No internet service  No internet service  No internet service  No internet service  No internet service  No internet service  One year              Yes               Mailed check           19.70         19.7    No
+6670  4075-WKNIU  Female              0     Yes        Yes       0          Yes               Yes             DSL                   No                  Yes                  Yes                  Yes                  Yes                   No  Two year               No               Mailed check           73.35        73.35    No
+6754  2775-SEFEE    Male              0      No        Yes       0          Yes               Yes             DSL                  Yes                  Yes                   No                  Yes                   No                   No  Two year              Yes  Bank transfer (automatic)           61.90         61.9    No
+'''
+
+df["TotalCharges"] = df["TotalCharges"].astype("float")
+print(df.isnull().sum())
+'''
+customerID          0
+gender              0
+SeniorCitizen       0
+Partner             0
+Dependents          0
+tenure              0
+PhoneService        0
+MultipleLines       0
+InternetService     0
+OnlineSecurity      0
+OnlineBackup        0
+DeviceProtection    0
+TechSupport         0
+StreamingTV         0
+StreamingMovies     0
+Contract            0
+PaperlessBilling    0
+PaymentMethod       0
+MonthlyCharges      0
+TotalCharges        0
+Churn               0
+dtype: int64
+'''
+
+#Adım 2: Yeni değişkenler oluşturunuz.
+
+
+#Adım 3: Encoding işlemlerini gerçekleştiriniz.
+
+#Adım 4: Numerik değişkenler için standartlaştırma yapınız.
+
+#Adım 5: Model oluşturunuz
+
