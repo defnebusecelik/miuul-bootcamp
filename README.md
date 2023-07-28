@@ -20,3 +20,4 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ![dia](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/c838dd99-9aa8-4ed8-a83f-ce6c26e33850)
 
+![indir](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/b14aba8e-e57b-4de2-8b0a-a2853ea3e22f)
