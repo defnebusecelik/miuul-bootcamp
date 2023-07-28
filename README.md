@@ -22,4 +22,5 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 [Telco Churn Feature Engineering]()
 
-![indir](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/b14aba8e-e57b-4de2-8b0a-a2853ea3e22f)
+![0_8Iu_eymr6eR-YuQw](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/7a402175-e6a2-4fcb-9a37-9d33c258853a)
+
