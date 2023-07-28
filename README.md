@@ -16,7 +16,7 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ## 3. Hafta - Feature Engineering
 
-![dia](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/c838dd99-9aa8-4ed8-a83f-ce6c26e33850)
-
 [Diabetes Feature Engineering](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/diabetes_feature.py)
+
+![dia](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/c838dd99-9aa8-4ed8-a83f-ce6c26e33850)
 
