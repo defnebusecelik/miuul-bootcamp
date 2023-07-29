@@ -36,7 +36,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -671,13 +674,183 @@ TotalCharges        0
 Churn               0
 dtype: int64
 '''
+def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
+    quartile1 = dataframe[col_name].quantile(q1)
+    quartile3 = dataframe[col_name].quantile(q3)
+    interquantile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquantile_range
+    low_limit = quartile1 - 1.5 * interquantile_range
+    return low_limit, up_limit
+
+def check_outlier(dataframe, col_name):
+    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
+    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
+        return True
+    else:
+        return False
+
+def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable, q1=0.05, q3=0.95)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+num_cols.append("TotalCharges")
+cat_but_car.remove("TotalCharges")
+
+for col in num_cols:
+    print(col, check_outlier(df, col))
+    if check_outlier(df, col):
+        replace_with_thresholds(df, col)
+'''
+tenure False
+MonthlyCharges False
+TotalCharges False
+'''
 
 #Adım 2: Yeni değişkenler oluşturunuz.
 
+df.loc[(df["tenure"]>=0) & (df["tenure"]<=12),"NEW_TENURE_YEAR"] = "0-1 Year"
+df.loc[(df["tenure"]>12) & (df["tenure"]<=24),"NEW_TENURE_YEAR"] = "1-2 Year"
+df.loc[(df["tenure"]>24) & (df["tenure"]<=36),"NEW_TENURE_YEAR"] = "2-3 Year"
+df.loc[(df["tenure"]>36) & (df["tenure"]<=48),"NEW_TENURE_YEAR"] = "3-4 Year"
+df.loc[(df["tenure"]>48) & (df["tenure"]<=60),"NEW_TENURE_YEAR"] = "4-5 Year"
+df.loc[(df["tenure"]>60) & (df["tenure"]<=72),"NEW_TENURE_YEAR"] = "5-6 Year"
+print(df.head())
+
+'''
+   customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService     MultipleLines InternetService OnlineSecurity OnlineBackup DeviceProtection TechSupport StreamingTV StreamingMovies        Contract PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges Churn NEW_TENURE_YEAR
+0  7590-VHVEG  Female              0     Yes         No       1           No  No phone service             DSL             No          Yes               No          No          No              No  Month-to-month              Yes           Electronic check           29.85         29.85    No        0-1 Year
+1  5575-GNVDE    Male              0      No         No      34          Yes                No             DSL            Yes           No              Yes          No          No              No        One year               No               Mailed check           56.95       1889.50    No        2-3 Year
+2  3668-QPYBK    Male              0      No         No       2          Yes                No             DSL            Yes          Yes               No          No          No              No  Month-to-month              Yes               Mailed check           53.85        108.15   Yes        0-1 Year
+3  7795-CFOCW    Male              0      No         No      45           No  No phone service             DSL            Yes           No              Yes         Yes          No              No        One year               No  Bank transfer (automatic)           42.30       1840.75    No        3-4 Year
+4  9237-HQITU  Female              0      No         No       2          Yes                No     Fiber optic             No           No               No          No          No              No  Month-to-month              Yes           Electronic check           70.70        151.65   Yes        0-1 Year
+'''
+
+df["NEW_AVG_Charges"] = df["TotalCharges"] / (df["tenure"] + 1)
+print(df.head())
+'''
+   customerID  gender  SeniorCitizen Partner Dependents  tenure PhoneService     MultipleLines InternetService OnlineSecurity OnlineBackup DeviceProtection TechSupport StreamingTV StreamingMovies        Contract PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges Churn NEW_TENURE_YEAR  NEW_AVG_Charges
+0  7590-VHVEG  Female              0     Yes         No       1           No  No phone service             DSL             No          Yes               No          No          No              No  Month-to-month              Yes           Electronic check           29.85         29.85    No        0-1 Year        14.925000
+1  5575-GNVDE    Male              0      No         No      34          Yes                No             DSL            Yes           No              Yes          No          No              No        One year               No               Mailed check           56.95       1889.50    No        2-3 Year        53.985714
+2  3668-QPYBK    Male              0      No         No       2          Yes                No             DSL            Yes          Yes               No          No          No              No  Month-to-month              Yes               Mailed check           53.85        108.15   Yes        0-1 Year        36.050000
+3  7795-CFOCW    Male              0      No         No      45           No  No phone service             DSL            Yes           No              Yes         Yes          No              No        One year               No  Bank transfer (automatic)           42.30       1840.75    No        3-4 Year        40.016304
+4  9237-HQITU  Female              0      No         No       2          Yes                No     Fiber optic             No           No               No          No          No              No  Month-to-month              Yes           Electronic check           70.70        151.65   Yes        0-1 Year        50.550000
+'''
 
 #Adım 3: Encoding işlemlerini gerçekleştiriniz.
 
+cat_cols, num_cols, cat_but_car = grab_col_names(df)
+'''
+Observations: 7043
+Variables: 23
+cat_cols: 18
+num_cols: 4
+cat_but_car: 1
+num_but_cat: 1
+'''
+
+def label_encoder(dataframe, binary_col):
+    labelencoder = LabelEncoder()
+    dataframe[binary_col] = labelencoder.fit_transform(dataframe[binary_col])
+    return dataframe
+binary_cols = [col for col in df.columns if df[col].dtypes == "O" and df[col].nunique() == 2]
+for col in binary_cols:
+    df = label_encoder(df, col)
+print(df.head())
+'''
+   customerID  gender  SeniorCitizen  Partner  Dependents  tenure  PhoneService     MultipleLines InternetService OnlineSecurity OnlineBackup DeviceProtection TechSupport StreamingTV StreamingMovies        Contract  PaperlessBilling              PaymentMethod  MonthlyCharges  TotalCharges  Churn NEW_TENURE_YEAR  NEW_AVG_Charges
+0  7590-VHVEG       0              0        1           0       1             0  No phone service             DSL             No          Yes               No          No          No              No  Month-to-month                 1           Electronic check           29.85         29.85      0        0-1 Year        14.925000
+1  5575-GNVDE       1              0        0           0      34             1                No             DSL            Yes           No              Yes          No          No              No        One year                 0               Mailed check           56.95       1889.50      0        2-3 Year        53.985714
+2  3668-QPYBK       1              0        0           0       2             1                No             DSL            Yes          Yes               No          No          No              No  Month-to-month                 1               Mailed check           53.85        108.15      1        0-1 Year        36.050000
+3  7795-CFOCW       1              0        0           0      45             0  No phone service             DSL            Yes           No              Yes         Yes          No              No        One year                 0  Bank transfer (automatic)           42.30       1840.75      0        3-4 Year        40.016304
+4  9237-HQITU       0              0        0           0       2             1                No     Fiber optic             No           No               No          No          No              No  Month-to-month                 1           Electronic check           70.70        151.65      1        0-1 Year        50.550000
+'''
+print(binary_cols)
+'''
+['gender', 'Partner', 'Dependents', 'PhoneService', 'PaperlessBilling', 'Churn']
+'''
+
+cat_cols = [col for col in cat_cols if col not in binary_cols and col not in ["Churn"]]
+def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
+    dataframe = pd.get_dummies(dataframe, columns=categorical_cols, drop_first=drop_first)
+    return dataframe
+df = one_hot_encoder(df, cat_cols, drop_first=True)
+print(df.head())
+'''
+   customerID  gender  Partner  Dependents  tenure  PhoneService  PaperlessBilling  MonthlyCharges  TotalCharges  Churn  NEW_AVG_Charges  MultipleLines_No phone service  MultipleLines_Yes  InternetService_Fiber optic  InternetService_No  OnlineSecurity_No internet service  OnlineSecurity_Yes  OnlineBackup_No internet service  OnlineBackup_Yes  DeviceProtection_No internet service  DeviceProtection_Yes  TechSupport_No internet service  TechSupport_Yes  StreamingTV_No internet service  StreamingTV_Yes  StreamingMovies_No internet service  StreamingMovies_Yes  Contract_One year  Contract_Two year  PaymentMethod_Credit card (automatic)  PaymentMethod_Electronic check  PaymentMethod_Mailed check  NEW_TENURE_YEAR_1-2 Year  NEW_TENURE_YEAR_2-3 Year  NEW_TENURE_YEAR_3-4 Year  NEW_TENURE_YEAR_4-5 Year  NEW_TENURE_YEAR_5-6 Year  SeniorCitizen_1
+0  7590-VHVEG       0        1           0       1             0                 1           29.85         29.85      0        14.925000                               1                  0                            0                   0                                   0                   0                                 0                 1                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               1                           0                         0                         0                         0                         0                         0                0
+1  5575-GNVDE       1        0           0      34             1                 0           56.95       1889.50      0        53.985714                               0                  0                            0                   0                                   0                   1                                 0                 0                                     0                     1                                0                0                                0                0                                    0                    0                  1                  0                                      0                               0                           1                         0                         1                         0                         0                         0                0
+2  3668-QPYBK       1        0           0       2             1                 1           53.85        108.15      1        36.050000                               0                  0                            0                   0                                   0                   1                                 0                 1                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               0                           1                         0                         0                         0                         0                         0                0
+3  7795-CFOCW       1        0           0      45             0                 0           42.30       1840.75      0        40.016304                               1                  0                            0                   0                                   0                   1                                 0                 0                                     0                     1                                0                1                                0                0                                    0                    0                  1                  0                                      0                               0                           0                         0                         0                         1                         0                         0                0
+4  9237-HQITU       0        0           0       2             1                 1           70.70        151.65      1        50.550000                               0                  0                            1                   0                                   0                   0                                 0                 0                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               1                           0                         0                         0                         0                         0                         0                0
+'''
+
 #Adım 4: Numerik değişkenler için standartlaştırma yapınız.
 
-#Adım 5: Model oluşturunuz
+print(num_cols)
+'''
+['tenure', 'MonthlyCharges', 'TotalCharges', 'NEW_AVG_Charges']
+'''
 
+mms = MinMaxScaler()
+df[num_cols] = mms.fit_transform(df[num_cols])
+print(df.head())
+'''
+   customerID  gender  Partner  Dependents    tenure  PhoneService  PaperlessBilling  MonthlyCharges  TotalCharges  Churn  NEW_AVG_Charges  MultipleLines_No phone service  MultipleLines_Yes  InternetService_Fiber optic  InternetService_No  OnlineSecurity_No internet service  OnlineSecurity_Yes  OnlineBackup_No internet service  OnlineBackup_Yes  DeviceProtection_No internet service  DeviceProtection_Yes  TechSupport_No internet service  TechSupport_Yes  StreamingTV_No internet service  StreamingTV_Yes  StreamingMovies_No internet service  StreamingMovies_Yes  Contract_One year  Contract_Two year  PaymentMethod_Credit card (automatic)  PaymentMethod_Electronic check  PaymentMethod_Mailed check  NEW_TENURE_YEAR_1-2 Year  NEW_TENURE_YEAR_2-3 Year  NEW_TENURE_YEAR_3-4 Year  NEW_TENURE_YEAR_4-5 Year  NEW_TENURE_YEAR_5-6 Year  SeniorCitizen_1
+0  7590-VHVEG       0        1           0  0.013889             0                 1        0.115423      0.001275      0         0.052298                               1                  0                            0                   0                                   0                   0                                 0                 1                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               1                           0                         0                         0                         0                         0                         0                0
+1  5575-GNVDE       1        0           0  0.472222             1                 0        0.385075      0.215867      0         0.408086                               0                  0                            0                   0                                   0                   1                                 0                 0                                     0                     1                                0                0                                0                0                                    0                    0                  1                  0                                      0                               0                           1                         0                         1                         0                         0                         0                0
+2  3668-QPYBK       1        0           0  0.027778             1                 1        0.354229      0.010310      1         0.244717                               0                  0                            0                   0                                   0                   1                                 0                 1                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               0                           1                         0                         0                         0                         0                         0                0
+3  7795-CFOCW       1        0           0  0.625000             0                 0        0.239303      0.210241      0         0.280845                               1                  0                            0                   0                                   0                   1                                 0                 0                                     0                     1                                0                1                                0                0                                    0                    0                  1                  0                                      0                               0                           0                         0                         0                         1                         0                         0                0
+4  9237-HQITU       0        0           0  0.027778             1                 1        0.521891      0.015330      1         0.376792                               0                  0                            1                   0                                   0                   0                                 0                 0                                     0                     0                                0                0                                0                0                                    0                    0                  0                  0                                      0                               1                           0                         0                         0                         0                         0                         0                0
+
+'''
+
+#Adım 5: Model oluşturunuz
+x = df.drop(["Churn", "customerID"], axis=1)
+y = df["Churn"]
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.30, random_state=13)
+rf_model = RandomForestClassifier(random_state = 1)
+rf_model.fit(x_train, y_train)
+y_pred = rf_model.predict(x_test)
+print(f"Accuracy: {round(accuracy_score(y_pred, y_test), 2)}")
+print(f"Recall: {round(recall_score(y_pred,y_test),2)}")
+print(f"Precision: {round(precision_score(y_pred,y_test), 2)}")
+print(f"F1: {round(f1_score(y_pred,y_test), 2)}")
+print(f"Auc: {round(roc_auc_score(y_pred,y_test), 2)}")
+'''
+Accuracy: 0.8
+Recall: 0.63
+Precision: 0.5
+F1: 0.56
+Auc: 0.74
+'''
+
+def plot_importance(model, features, num=len(x_train), save=False):
+    feature_imp = pd.DataFrame({'Value': model.feature_importances_, 'Feature': features.columns})
+    print(feature_imp.sort_values("Value",ascending=False))
+    plt.figure(figsize=(10, 10))
+    sns.set(font_scale=1)
+    sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value",
+                                                                     ascending=False)[0:num])
+    plt.title('Features')
+    plt.tight_layout()
+    plt.show(block=True)
+    if save:
+        plt.savefig('importance.png')
+
+plot_importance(rf_model, x_train)
+'''
+       Value                               Feature
+7   0.149885                          TotalCharges
+3   0.144021                                tenure
+8   0.133156                       NEW_AVG_Charges
+6   0.129791                        MonthlyCharges
+11  0.038200           InternetService_Fiber optic
+..       ...                                   ...
+23  0.005314   StreamingMovies_No internet service
+17  0.004471  DeviceProtection_No internet service
+4   0.004040                          PhoneService
+9   0.003884        MultipleLines_No phone service
+15  0.003642      OnlineBackup_No internet service
+'''
