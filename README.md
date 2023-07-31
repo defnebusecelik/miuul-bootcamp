@@ -24,3 +24,4 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ![0_8Iu_eymr6eR-YuQw](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/7a402175-e6a2-4fcb-9a37-9d33c258853a)
 
+## 4. Hafta - Machine Learning
