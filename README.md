@@ -27,3 +27,8 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 ## 4. Hafta - Machine Learning
 
 [Salary Prediction with Machine Learning]()
+
+![dataset-cover](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/cbdf7f8d-69c3-43d7-a818-3b47be69f8a6)
+
+## 5. Hafta - Machine Learning
+
