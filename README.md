@@ -34,4 +34,6 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 [House Price Prediction with Machine Learning]()
 
+[House Price Data Information](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/housePriceInformation.py)
+
 ## 6. Hafta - Machine Learning
