@@ -1204,3 +1204,187 @@ MiscVal True
 MoSold False
 SalePrice True
 '''
+
+def replace_with_thresholds(dataframe, variable):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+
+for col in num_cols:
+    if col != "SalePrice":
+        replace_with_thresholds(df_train,col)
+
+for col in num_cols:
+    print(col,check_outlier(df_train,col))
+'''
+Id False
+MSSubClass False
+LotFrontage False
+LotArea False
+OverallQual False
+YearBuilt False
+YearRemodAdd False
+MasVnrArea False
+BsmtFinSF1 False
+BsmtFinSF2 False
+BsmtUnfSF False
+TotalBsmtSF False
+1stFlrSF False
+2ndFlrSF False
+LowQualFinSF False
+GrLivArea False
+TotRmsAbvGrd False
+GarageYrBlt False
+GarageArea False
+WoodDeckSF False
+OpenPorchSF False
+EnclosedPorch False
+3SsnPorch False
+ScreenPorch False
+MiscVal False
+MoSold False
+SalePrice True
+'''
+
+#Analysis of Missing Values
+
+def missing_values_table(dataframe, na_name=False):
+    na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
+    n_miss = dataframe[na_columns].isnull().sum().sort_values(ascending=False)
+    ratio = (dataframe[na_columns].isnull().sum() / dataframe.shape[0] * 100).sort_values(ascending=False)
+    missing_df = pd.concat([n_miss, np.round(ratio, 2)], axis=1, keys=['n_miss', 'ratio'])
+    print(missing_df, end="\n")
+    if na_name:
+        return na_columns
+
+na_columns = missing_values_table(df_train, na_name=True)
+'''
+              n_miss  ratio
+PoolQC          1453 99.520
+MiscFeature     1406 96.300
+Alley           1369 93.770
+Fence           1179 80.750
+FireplaceQu      690 47.260
+LotFrontage      259 17.740
+GarageType        81  5.550
+GarageYrBlt       81  5.550
+GarageFinish      81  5.550
+GarageQual        81  5.550
+GarageCond        81  5.550
+BsmtExposure      38  2.600
+BsmtFinType2      38  2.600
+BsmtFinType1      37  2.530
+BsmtCond          37  2.530
+BsmtQual          37  2.530
+MasVnrArea         8  0.550
+MasVnrType         8  0.550
+Electrical         1  0.070
+'''
+
+no_cols = ["Alley","BsmtQual","BsmtCond","BsmtExposure","BsmtFinType1","BsmtFinType2","FireplaceQu",
+           "GarageType","GarageFinish","GarageQual","GarageCond","PoolQC","Fence","MiscFeature"]
+for col in no_cols:
+    df_train[col].fillna("No", inplace=True)
+na_columns = missing_values_table(df_train, na_name=True)
+'''
+             n_miss  ratio
+LotFrontage     259 17.740
+GarageYrBlt      81  5.550
+MasVnrType        8  0.550
+MasVnrArea        8  0.550
+Electrical        1  0.070
+'''
+def quick_missing_imp(data, num_method="median", cat_length=20, target="SalePrice"):
+    variables_with_na = [col for col in data.columns if data[col].isnull().sum() > 0]  # Eksik değere sahip olan değişkenler listelenir
+
+    temp_target = data[target]
+
+    print("# BEFORE")
+    print(data[variables_with_na].isnull().sum(), "\n\n")  # Uygulama öncesi değişkenlerin eksik değerlerinin sayısı
+
+    # değişken object ve sınıf sayısı cat_lengthe eşit veya altındaysa boş değerleri mode ile doldur
+    data = data.apply(lambda x: x.fillna(x.mode()[0]) if (x.dtype == "O" and len(x.unique()) <= cat_length) else x, axis=0)
+
+    # num_method mean ise tipi object olmayan değişkenlerin boş değerleri ortalama ile dolduruluyor
+    if num_method == "mean":
+        data = data.apply(lambda x: x.fillna(x.mean()) if x.dtype != "O" else x, axis=0)
+    # num_method median ise tipi object olmayan değişkenlerin boş değerleri ortalama ile dolduruluyor
+    elif num_method == "median":
+        data = data.apply(lambda x: x.fillna(x.median()) if x.dtype != "O" else x, axis=0)
+
+    data[target] = temp_target
+
+    print("# AFTER \n Imputation method is 'MODE' for categorical variables!")
+    print(" Imputation method is '" + num_method.upper() + "' for numeric variables! \n")
+    print(data[variables_with_na].isnull().sum(), "\n\n")
+
+    return data
+
+df_train = quick_missing_imp(df_train, num_method="median", cat_length=17)
+'''
+# BEFORE
+LotFrontage    259
+MasVnrType       8
+MasVnrArea       8
+Electrical       1
+GarageYrBlt     81
+dtype: int64 
+
+
+# AFTER 
+ Imputation method is 'MODE' for categorical variables!
+ Imputation method is 'MEDIAN' for numeric variables! 
+
+LotFrontage    0
+MasVnrType     0
+MasVnrArea     0
+Electrical     0
+GarageYrBlt    0
+dtype: int64 
+'''
+
+#Analysis of Correlation
+
+print(df_train.corr())
+'''
+                  Id  MSSubClass  LotFrontage  LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  MasVnrArea  BsmtFinSF1  BsmtFinSF2  BsmtUnfSF  TotalBsmtSF  1stFlrSF  2ndFlrSF  LowQualFinSF  GrLivArea  BsmtFullBath  BsmtHalfBath  FullBath  HalfBath  BedroomAbvGr  KitchenAbvGr  TotRmsAbvGrd  Fireplaces  GarageYrBlt  GarageCars  GarageArea  WoodDeckSF  OpenPorchSF  EnclosedPorch  3SsnPorch  ScreenPorch  PoolArea  MiscVal  MoSold  YrSold  SalePrice
+Id             1.000       0.011       -0.019   -0.003       -0.028        0.013     -0.013        -0.022      -0.049      -0.011      -0.003     -0.008       -0.022     0.007     0.006           NaN      0.005         0.002        -0.020     0.006     0.007         0.038         0.003         0.027      -0.020       -0.000       0.017       0.018      -0.029       -0.002          0.006        NaN          NaN     0.057      NaN   0.021   0.001     -0.022
+MSSubClass     0.011       1.000       -0.380   -0.323        0.033       -0.059      0.028         0.041       0.022      -0.073      -0.063     -0.141       -0.249    -0.258     0.308           NaN      0.076         0.003        -0.002     0.132     0.177        -0.023         0.282         0.040      -0.046        0.081      -0.040      -0.099      -0.013       -0.005         -0.015        NaN          NaN     0.008      NaN  -0.014  -0.021     -0.084
+LotFrontage   -0.019      -0.380        1.000    0.518        0.237       -0.061      0.122         0.079       0.181       0.161       0.041      0.139        0.332     0.386     0.075           NaN      0.347         0.078        -0.005     0.187     0.049         0.248        -0.003         0.322       0.231        0.066       0.287       0.327       0.082        0.138         -0.000        NaN          NaN     0.140      NaN   0.012   0.006      0.358
+LotArea       -0.003      -0.323        0.518    1.000        0.195       -0.017      0.044         0.041       0.157       0.237       0.079      0.058        0.345     0.439     0.120           NaN      0.423         0.144         0.049     0.196     0.083         0.246        -0.015         0.355       0.351       -0.007       0.284       0.327       0.218        0.161         -0.013        NaN          NaN     0.117      NaN  -0.005  -0.036      0.405
+OverallQual   -0.028       0.033        0.237    0.195        1.000       -0.092      0.572         0.551       0.418       0.236      -0.102      0.308        0.546     0.478     0.295           NaN      0.596         0.111        -0.040     0.551     0.273         0.102        -0.184         0.427       0.397        0.514       0.601       0.562       0.239        0.320         -0.123        NaN          NaN     0.065      NaN   0.071  -0.027      0.791
+OverallCond    0.013      -0.059       -0.061   -0.017       -0.092        1.000     -0.376         0.074      -0.130      -0.046       0.060     -0.137       -0.176    -0.146     0.029           NaN     -0.080        -0.055         0.118    -0.194    -0.061         0.013        -0.087        -0.058      -0.024       -0.306      -0.186      -0.152      -0.002       -0.040          0.075        NaN          NaN    -0.002      NaN  -0.004   0.044     -0.078
+YearBuilt     -0.013       0.028        0.122    0.044        0.572       -0.376      1.000         0.593       0.323       0.253      -0.068      0.149        0.402     0.285     0.010           NaN      0.199         0.188        -0.038     0.468     0.243        -0.071        -0.175         0.096       0.148        0.777       0.538       0.479       0.227        0.210         -0.389        NaN          NaN     0.005      NaN   0.012  -0.014      0.523
+YearRemodAdd  -0.022       0.041        0.079    0.041        0.551        0.074      0.593         1.000       0.183       0.128      -0.104      0.181        0.298     0.242     0.140           NaN      0.290         0.119        -0.012     0.439     0.183        -0.041        -0.150         0.192       0.113        0.616       0.421       0.372       0.209        0.243         -0.201        NaN          NaN     0.006      NaN   0.021   0.036      0.507
+MasVnrArea    -0.049       0.022        0.181    0.157        0.418       -0.130      0.323         0.183       1.000       0.258      -0.071      0.120        0.367     0.348     0.165           NaN      0.385         0.089         0.027     0.275     0.202         0.104        -0.038         0.287       0.252        0.253       0.374       0.385       0.166        0.142         -0.114        NaN          NaN     0.014      NaN  -0.004  -0.001      0.473
+BsmtFinSF1    -0.011      -0.073        0.161    0.237        0.236       -0.046      0.253         0.128       0.258       1.000      -0.024     -0.513        0.484     0.414    -0.149           NaN      0.166         0.660         0.071     0.057    -0.001        -0.112        -0.083         0.030       0.253        0.149       0.231       0.288       0.206        0.102         -0.110        NaN          NaN     0.091      NaN  -0.007   0.014      0.403
+BsmtFinSF2    -0.003      -0.063        0.041    0.079       -0.102        0.060     -0.068        -0.104      -0.071      -0.024       1.000     -0.232        0.076     0.069    -0.106           NaN     -0.037         0.142         0.112    -0.100    -0.049         0.008        -0.034        -0.044       0.029       -0.105      -0.058      -0.025       0.078       -0.039          0.050        NaN          NaN     0.070      NaN  -0.022   0.031     -0.051
+BsmtUnfSF     -0.008      -0.141        0.139    0.058        0.308       -0.137      0.149         0.181       0.120      -0.513      -0.232      1.000        0.433     0.325     0.004           NaN      0.246        -0.423        -0.096     0.289    -0.041         0.167         0.030         0.251       0.052        0.186       0.214       0.183      -0.003        0.131         -0.003        NaN          NaN    -0.035      NaN   0.035  -0.041      0.214
+TotalBsmtSF   -0.022      -0.249        0.332    0.345        0.546       -0.176      0.402         0.298       0.367       0.484       0.076      0.433        1.000     0.810    -0.189           NaN      0.427         0.305         0.001     0.333    -0.057         0.052        -0.071         0.280       0.336        0.316       0.451       0.485       0.238        0.243         -0.105        NaN          NaN     0.072      NaN   0.023  -0.016      0.641
+1stFlrSF       0.007      -0.258        0.386    0.439        0.478       -0.146      0.285         0.242       0.348       0.414       0.069      0.325        0.810     1.000    -0.212           NaN      0.549         0.241         0.003     0.386    -0.126         0.129         0.070         0.408       0.409        0.226       0.448       0.488       0.238        0.207         -0.072        NaN          NaN     0.100      NaN   0.038  -0.014      0.620
+2ndFlrSF       0.006       0.308        0.075    0.120        0.295        0.029      0.010         0.140       0.165      -0.149      -0.106      0.004       -0.189    -0.212     1.000           NaN      0.695        -0.169        -0.024     0.421     0.610         0.503         0.059         0.616       0.195        0.068       0.184       0.138       0.093        0.209          0.052        NaN          NaN     0.081      NaN   0.035  -0.029      0.319
+LowQualFinSF     NaN         NaN          NaN      NaN          NaN          NaN        NaN           NaN         NaN         NaN         NaN        NaN          NaN       NaN       NaN           NaN        NaN           NaN           NaN       NaN       NaN           NaN           NaN           NaN         NaN          NaN         NaN         NaN         NaN          NaN            NaN        NaN          NaN       NaN      NaN     NaN     NaN        NaN
+GrLivArea      0.005       0.076        0.347    0.423        0.596       -0.080      0.199         0.290       0.385       0.166      -0.037      0.246        0.427     0.549     0.695           NaN      1.000         0.028        -0.020     0.638     0.421         0.532         0.103         0.833       0.462        0.221       0.475       0.467       0.250        0.328         -0.003        NaN          NaN     0.140      NaN   0.055  -0.037      0.719
+BsmtFullBath   0.002       0.003        0.078    0.144        0.111       -0.055      0.188         0.119       0.089       0.660       0.142     -0.423        0.305     0.241    -0.169           NaN      0.028         1.000        -0.148    -0.065    -0.031        -0.151        -0.042        -0.053       0.138        0.119       0.132       0.179       0.173        0.074         -0.053        NaN          NaN     0.068      NaN  -0.025   0.067      0.227
+BsmtHalfBath  -0.020      -0.002       -0.005    0.049       -0.040        0.118     -0.038        -0.012       0.027       0.071       0.112     -0.096        0.001     0.003    -0.024           NaN     -0.020        -0.148         1.000    -0.055    -0.012         0.047        -0.038        -0.024       0.029       -0.075      -0.021      -0.025       0.041       -0.024         -0.021        NaN          NaN     0.020      NaN   0.033  -0.047     -0.017
+FullBath       0.006       0.132        0.187    0.196        0.551       -0.194      0.468         0.439       0.275       0.057      -0.100      0.289        0.333     0.386     0.421           NaN      0.638        -0.065        -0.055     1.000     0.136         0.363         0.133         0.555       0.244        0.467       0.470       0.406       0.193        0.267         -0.121        NaN          NaN     0.050      NaN   0.056  -0.020      0.561
+HalfBath       0.007       0.177        0.049    0.083        0.273       -0.061      0.243         0.183       0.202      -0.001      -0.049     -0.041       -0.057    -0.126     0.610           NaN      0.421        -0.031        -0.012     0.136     1.000         0.227        -0.068         0.343       0.204        0.190       0.219       0.164       0.107        0.208         -0.097        NaN          NaN     0.022      NaN  -0.009  -0.010      0.284
+BedroomAbvGr   0.038      -0.023        0.248    0.246        0.102        0.013     -0.071        -0.041       0.104      -0.112       0.008      0.167        0.052     0.129     0.503           NaN      0.532        -0.151         0.047     0.363     0.227         1.000         0.199         0.677       0.108       -0.060       0.086       0.065       0.050        0.093          0.036        NaN          NaN     0.071      NaN   0.047  -0.036      0.168
+KitchenAbvGr   0.003       0.282       -0.003   -0.015       -0.184       -0.087     -0.175        -0.150      -0.038      -0.083      -0.034      0.030       -0.071     0.070     0.059           NaN      0.103        -0.042        -0.038     0.133    -0.068         0.199         1.000         0.256      -0.124       -0.105      -0.051      -0.064      -0.091       -0.072          0.040        NaN          NaN    -0.015      NaN   0.027   0.032     -0.136
+TotRmsAbvGrd   0.027       0.040        0.322    0.355        0.427       -0.058      0.096         0.192       0.287       0.030      -0.044      0.251        0.280     0.408     0.616           NaN      0.833        -0.053        -0.024     0.555     0.343         0.677         0.256         1.000       0.326        0.140       0.362       0.338       0.168        0.241         -0.001        NaN          NaN     0.084      NaN   0.037  -0.035      0.534
+Fireplaces    -0.020      -0.046        0.231    0.351        0.397       -0.024      0.148         0.113       0.252       0.253       0.029      0.052        0.336     0.409     0.195           NaN      0.462         0.138         0.029     0.244     0.204         0.108        -0.124         0.326       1.000        0.043       0.301       0.269       0.201        0.172         -0.029        NaN          NaN     0.095      NaN   0.046  -0.024      0.467
+GarageYrBlt   -0.000       0.081        0.066   -0.007        0.514       -0.306      0.777         0.616       0.253       0.149      -0.105      0.186        0.316     0.226     0.068           NaN      0.221         0.119        -0.075     0.467     0.190        -0.060        -0.105         0.140       0.043        1.000       0.474       0.469       0.222        0.234         -0.283        NaN          NaN    -0.015      NaN   0.005  -0.001      0.467
+GarageCars     0.017      -0.040        0.287    0.284        0.601       -0.186      0.538         0.421       0.374       0.231      -0.058      0.214        0.451     0.448     0.184           NaN      0.475         0.132        -0.021     0.470     0.219         0.086        -0.051         0.362       0.301        0.474       1.000       0.882       0.227        0.226         -0.160        NaN          NaN     0.021      NaN   0.041  -0.039      0.640
+GarageArea     0.018      -0.099        0.327    0.327        0.562       -0.152      0.479         0.372       0.385       0.288      -0.025      0.183        0.485     0.488     0.138           NaN      0.467         0.179        -0.025     0.406     0.164         0.065        -0.064         0.338       0.269        0.469       0.882       1.000       0.225        0.252         -0.132        NaN          NaN     0.061      NaN   0.028  -0.027      0.623
+WoodDeckSF    -0.029      -0.013        0.082    0.218        0.239       -0.002      0.227         0.209       0.166       0.206       0.078     -0.003        0.238     0.238     0.093           NaN      0.250         0.173         0.041     0.193     0.107         0.050        -0.091         0.168       0.201        0.222       0.227       0.225       1.000        0.065         -0.129        NaN          NaN     0.074      NaN   0.019   0.024      0.325
+OpenPorchSF   -0.002      -0.005        0.138    0.161        0.320       -0.040      0.210         0.243       0.142       0.102      -0.039      0.131        0.243     0.207     0.209           NaN      0.328         0.074        -0.024     0.267     0.208         0.093        -0.072         0.241       0.172        0.234       0.226       0.252       0.065        1.000         -0.098        NaN          NaN     0.064      NaN   0.069  -0.061      0.329
+EnclosedPorch  0.006      -0.015       -0.000   -0.013       -0.123        0.075     -0.389        -0.201      -0.114      -0.110       0.050     -0.003       -0.105    -0.072     0.052           NaN     -0.003        -0.053        -0.021    -0.121    -0.097         0.036         0.040        -0.001      -0.029       -0.283      -0.160      -0.132      -0.129       -0.098          1.000        NaN          NaN     0.016      NaN  -0.025  -0.006     -0.137
+3SsnPorch        NaN         NaN          NaN      NaN          NaN          NaN        NaN           NaN         NaN         NaN         NaN        NaN          NaN       NaN       NaN           NaN        NaN           NaN           NaN       NaN       NaN           NaN           NaN           NaN         NaN          NaN         NaN         NaN         NaN          NaN            NaN        NaN          NaN       NaN      NaN     NaN     NaN        NaN
+ScreenPorch      NaN         NaN          NaN      NaN          NaN          NaN        NaN           NaN         NaN         NaN         NaN        NaN          NaN       NaN       NaN           NaN        NaN           NaN           NaN       NaN       NaN           NaN           NaN           NaN         NaN          NaN         NaN         NaN         NaN          NaN            NaN        NaN          NaN       NaN      NaN     NaN     NaN        NaN
+PoolArea       0.057       0.008        0.140    0.117        0.065       -0.002      0.005         0.006       0.014       0.091       0.070     -0.035        0.072     0.100     0.081           NaN      0.140         0.068         0.020     0.050     0.022         0.071        -0.015         0.084       0.095       -0.015       0.021       0.061       0.074        0.064          0.016        NaN          NaN     1.000      NaN  -0.034  -0.060      0.092
+MiscVal          NaN         NaN          NaN      NaN          NaN          NaN        NaN           NaN         NaN         NaN         NaN        NaN          NaN       NaN       NaN           NaN        NaN           NaN           NaN       NaN       NaN           NaN           NaN           NaN         NaN          NaN         NaN         NaN         NaN          NaN            NaN        NaN          NaN       NaN      NaN     NaN     NaN        NaN
+MoSold         0.021      -0.014        0.012   -0.005        0.071       -0.004      0.012         0.021      -0.004      -0.007      -0.022      0.035        0.023     0.038     0.035           NaN      0.055        -0.025         0.033     0.056    -0.009         0.047         0.027         0.037       0.046        0.005       0.041       0.028       0.019        0.069         -0.025        NaN          NaN    -0.034      NaN   1.000  -0.146      0.046
+YrSold         0.001      -0.021        0.006   -0.036       -0.027        0.044     -0.014         0.036      -0.001       0.014       0.031     -0.041       -0.016    -0.014    -0.029           NaN     -0.037         0.067        -0.047    -0.020    -0.010        -0.036         0.032        -0.035      -0.024       -0.001      -0.039      -0.027       0.024       -0.061         -0.006        NaN          NaN    -0.060      NaN  -0.146   1.000     -0.029
+SalePrice     -0.022      -0.084        0.358    0.405        0.791       -0.078      0.523         0.507       0.473       0.403      -0.051      0.214        0.641     0.620     0.319           NaN      0.719         0.227        -0.017     0.561     0.284         0.168        -0.136         0.534       0.467        0.467       0.640       0.623       0.325        0.329         -0.137        NaN          NaN     0.092      NaN   0.046  -0.029      1.000
+'''
