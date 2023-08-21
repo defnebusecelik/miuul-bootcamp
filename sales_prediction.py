@@ -38,8 +38,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.impute import KNNImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
 from sklearn.linear_model import LinearRegression, Ridge, RidgeCV, ElasticNet, Lasso, LassoCV
 from sklearn.metrics import mean_squared_error, accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 from sklearn import preprocessing
@@ -562,6 +562,18 @@ plt.show()
 #Data PreProcessing
 #Feature Engineering
 
+
+cat_cols, num_cols, cat_but_car = grab_col_names(df)
+'''
+Observations: 322
+Variables: 20
+cat_cols: 3
+num_cols: 17
+cat_but_car: 0
+num_but_cat: 0
+'''
+
+
 df['NEW_Avg_AtBat'] = df['CAtBat'] / df['Years']
 df['NEW_Avg_Hits'] = df['CHits'] / df['Years']
 df['NEW_Avg_HmRun'] = df['CHmRun'] / df['Years']
@@ -585,6 +597,83 @@ print(df.head())
 4         50.50           6.00         24.00        23.00          16.50  
 '''
 
+df.loc[(df["Years"] <= 2), "NEW_YEARS_LEVEL"] = "Junior"
+df.loc[(df["Years"] > 2) & (df['Years'] <= 5), "NEW_YEARS_LEVEL"] = "Mid"
+df.loc[(df["Years"] > 5) & (df['Years'] <= 10), "NEW_YEARS_LEVEL"] = "Senior"
+df.loc[(df["Years"] > 10), "NEW_YEARS_LEVEL"] = "Expert"
+print(df.head())
+'''
+   AtBat  Hits  HmRun  Runs  RBI  Walks  Years  CAtBat   CHits  CHmRun  CRuns  CRBI  CWalks League Division  PutOuts  Assists  Errors  Salary NewLeague  NEW_Avg_AtBat  \
+0    293    66      1    30   29     14      1     293   66.00    1.00     30    29   14.00      A        E      446       33      20     NaN         A         293.00   
+1    315    81      7    24   38     39     14    3449  835.00   69.00    321   414  375.00      N        W      632       43      10  475.00         N         246.36   
+2    479   130     18    66   72     76      3    1624  457.00   63.00    224   266  263.00      A        W      880       82      14  480.00         A         541.33   
+3    496   141     20    65   78     37     11    5628 1575.00  225.00    828   838  354.00      N        E      200       11       3  500.00         N         511.64   
+4    321    87     10    39   42     30      2     396  101.00   12.00     48    46   33.00      N        E      805       40       4   91.50         N         198.00   
+
+   NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks NEW_YEARS_LEVEL  
+0         66.00           1.00         30.00        29.00          14.00          Junior  
+1         59.64           4.93         22.93        29.57          26.79          Expert  
+2        152.33          21.00         74.67        88.67          87.67             Mid  
+3        143.18          20.45         75.27        76.18          32.18          Expert  
+4         50.50           6.00         24.00        23.00          16.50          Junior  
+'''
+
+df.loc[(df["NEW_YEARS_LEVEL"] == "Junior") & (df["Division"] == "E"), 'NEW_DIV_CAT'] = "Junior-East"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Junior") & (df["Division"] == "W"), 'NEW_DIV_CAT'] = "Junior-West"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Mid") & (df["Division"] == "E"), 'NEW_DIV_CAT'] = "Mid-East"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Mid") & (df["Division"] == "W"), 'NEW_DIV_CAT'] = "Mid-West"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Senior") & (df["Division"] == "E"), 'NEW_DIV_CAT'] = "Senior-East"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Senior") & (df["Division"] == "W"), 'NEW_DIV_CAT'] = "Senior-West"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Expert") & (df["Division"] == "E"), 'NEW_DIV_CAT'] = "Expert-East"
+df.loc[(df["NEW_YEARS_LEVEL"] == "Expert") & (df["Division"] == "W"), 'NEW_DIV_CAT'] = "Expert-West"
+print(df.head())
+'''
+   AtBat  Hits  HmRun  Runs  RBI  Walks  Years  CAtBat   CHits  CHmRun  CRuns  CRBI  CWalks League Division  PutOuts  Assists  Errors  Salary NewLeague  NEW_Avg_AtBat  \
+0    293    66      1    30   29     14      1     293   66.00    1.00     30    29   14.00      A        E      446       33      20     NaN         A         293.00   
+1    315    81      7    24   38     39     14    3449  835.00   69.00    321   414  375.00      N        W      632       43      10  475.00         N         246.36   
+2    479   130     18    66   72     76      3    1624  457.00   63.00    224   266  263.00      A        W      880       82      14  480.00         A         541.33   
+3    496   141     20    65   78     37     11    5628 1575.00  225.00    828   838  354.00      N        E      200       11       3  500.00         N         511.64   
+4    321    87     10    39   42     30      2     396  101.00   12.00     48    46   33.00      N        E      805       40       4   91.50         N         198.00   
+
+   NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks NEW_YEARS_LEVEL  NEW_DIV_CAT  
+0         66.00           1.00         30.00        29.00          14.00          Junior  Junior-East  
+1         59.64           4.93         22.93        29.57          26.79          Expert  Expert-West  
+2        152.33          21.00         74.67        88.67          87.67             Mid     Mid-West  
+3        143.18          20.45         75.27        76.18          32.18          Expert  Expert-East  
+4         50.50           6.00         24.00        23.00          16.50          Junior  Junior-East  
+ '''
+
+df.loc[(df["League"] == "N") & (df["NewLeague"] == "N"), "NEW_PLAYER_PROGRESS"] = "StandN"
+df.loc[(df["League"] == "A") & (df["NewLeague"] == "A"), "NEW_PLAYER_PROGRESS"] = "StandA"
+df.loc[(df["League"] == "N") & (df["NewLeague"] == "A"), "NEW_PLAYER_PROGRESS"] = "Descend"
+df.loc[(df["League"] == "A") & (df["NewLeague"] == "N"), "NEW_PLAYER_PROGRESS"] = "Ascend"
+print(df.head())
+'''
+   AtBat  Hits  HmRun  Runs  RBI  Walks  Years  CAtBat   CHits  CHmRun  CRuns  CRBI  CWalks League Division  PutOuts  Assists  Errors  Salary NewLeague  NEW_Avg_AtBat  \
+0    293    66      1    30   29     14      1     293   66.00    1.00     30    29   14.00      A        E      446       33      20     NaN         A         293.00   
+1    315    81      7    24   38     39     14    3449  835.00   69.00    321   414  375.00      N        W      632       43      10  475.00         N         246.36   
+2    479   130     18    66   72     76      3    1624  457.00   63.00    224   266  263.00      A        W      880       82      14  480.00         A         541.33   
+3    496   141     20    65   78     37     11    5628 1575.00  225.00    828   838  354.00      N        E      200       11       3  500.00         N         511.64   
+4    321    87     10    39   42     30      2     396  101.00   12.00     48    46   33.00      N        E      805       40       4   91.50         N         198.00   
+
+   NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks NEW_YEARS_LEVEL  NEW_DIV_CAT NEW_PLAYER_PROGRESS  
+0         66.00           1.00         30.00        29.00          14.00          Junior  Junior-East              StandA  
+1         59.64           4.93         22.93        29.57          26.79          Expert  Expert-West              StandN  
+2        152.33          21.00         74.67        88.67          87.67             Mid     Mid-West              StandA  
+3        143.18          20.45         75.27        76.18          32.18          Expert  Expert-East              StandN  
+4         50.50           6.00         24.00        23.00          16.50          Junior  Junior-East              StandN  
+
+'''
+cat_cols, num_cols, cat_but_car = grab_col_names(df)
+'''
+Observations: 322
+Variables: 29
+cat_cols: 6
+num_cols: 23
+cat_but_car: 0
+num_but_cat: 0
+'''
+
 def label_encoder(dataframe, binary_col):
     labelencoder = LabelEncoder()
     dataframe[binary_col] = labelencoder.fit_transform(dataframe[binary_col])
@@ -601,12 +690,12 @@ print(df.head())
 3    496   141     20    65   78     37     11    5628 1575.00  225.00    828   838  354.00       1         0      200       11       3  500.00          1   
 4    321    87     10    39   42     30      2     396  101.00   12.00     48    46   33.00       1         0      805       40       4   91.50          1   
 
-   NEW_Avg_AtBat  NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks  
-0         293.00         66.00           1.00         30.00        29.00          14.00  
-1         246.36         59.64           4.93         22.93        29.57          26.79  
-2         541.33        152.33          21.00         74.67        88.67          87.67  
-3         511.64        143.18          20.45         75.27        76.18          32.18  
-4         198.00         50.50           6.00         24.00        23.00          16.50  
+   NEW_Avg_AtBat  NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks NEW_YEARS_LEVEL  NEW_DIV_CAT NEW_PLAYER_PROGRESS  
+0         293.00         66.00           1.00         30.00        29.00          14.00          Junior  Junior-East              StandA  
+1         246.36         59.64           4.93         22.93        29.57          26.79          Expert  Expert-West              StandN  
+2         541.33        152.33          21.00         74.67        88.67          87.67             Mid     Mid-West              StandA  
+3         511.64        143.18          20.45         75.27        76.18          32.18          Expert  Expert-East              StandN  
+4         198.00         50.50           6.00         24.00        23.00          16.50          Junior  Junior-East              StandN  
 '''
 
 print(binary_cols)
@@ -627,12 +716,26 @@ print(df.head())
 3    496   141     20    65   78     37     11    5628 1575.00  225.00    828   838  354.00       1         0      200       11       3  500.00          1   
 4    321    87     10    39   42     30      2     396  101.00   12.00     48    46   33.00       1         0      805       40       4   91.50          1   
 
-   NEW_Avg_AtBat  NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks  
-0         293.00         66.00           1.00         30.00        29.00          14.00  
-1         246.36         59.64           4.93         22.93        29.57          26.79  
-2         541.33        152.33          21.00         74.67        88.67          87.67  
-3         511.64        143.18          20.45         75.27        76.18          32.18  
-4         198.00         50.50           6.00         24.00        23.00          16.50  
+   NEW_Avg_AtBat  NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks  NEW_YEARS_LEVEL_Junior  NEW_YEARS_LEVEL_Mid  NEW_YEARS_LEVEL_Senior  \
+0         293.00         66.00           1.00         30.00        29.00          14.00                       1                    0                       0   
+1         246.36         59.64           4.93         22.93        29.57          26.79                       0                    0                       0   
+2         541.33        152.33          21.00         74.67        88.67          87.67                       0                    1                       0   
+3         511.64        143.18          20.45         75.27        76.18          32.18                       0                    0                       0   
+4         198.00         50.50           6.00         24.00        23.00          16.50                       1                    0                       0   
+
+   NEW_DIV_CAT_Expert-West  NEW_DIV_CAT_Junior-East  NEW_DIV_CAT_Junior-West  NEW_DIV_CAT_Mid-East  NEW_DIV_CAT_Mid-West  NEW_DIV_CAT_Senior-East  \
+0                        0                        1                        0                     0                     0                        0   
+1                        1                        0                        0                     0                     0                        0   
+2                        0                        0                        0                     0                     1                        0   
+3                        0                        0                        0                     0                     0                        0   
+4                        0                        1                        0                     0                     0                        0   
+
+   NEW_DIV_CAT_Senior-West  NEW_PLAYER_PROGRESS_Descend  NEW_PLAYER_PROGRESS_StandA  NEW_PLAYER_PROGRESS_StandN  
+0                        0                            0                           1                           0  
+1                        0                            0                           0                           1  
+2                        0                            0                           1                           0  
+3                        0                            0                           0                           1  
+4                        0                            0                           0                           1  
 '''
 
 df_null = df[df["Salary"].isnull()]
@@ -642,16 +745,37 @@ print(df.isnull().values.any())       #False
 #Standard Scaling
 
 num_cols.remove("Salary")
-scaler = StandardScaler()
+scaler = RobustScaler()
 df[num_cols] = scaler.fit_transform(df[num_cols])
 print(df.head())
 '''
    AtBat  Hits  HmRun  Runs   RBI  Walks  Years  CAtBat  CHits  CHmRun  CRuns  CRBI  CWalks  League  Division  PutOuts  Assists  Errors  Salary  NewLeague  \
-1  -0.60 -0.60  -0.53 -1.21 -0.52  -0.10   1.40    0.35   0.18    0.00  -0.12  0.26    0.44       1         1     1.22    -0.52    0.21  475.00          1   
-2   0.51  0.49   0.73  0.44  0.79   1.61  -0.90   -0.45  -0.41   -0.07  -0.42 -0.20    0.01       0         1     2.11    -0.25    0.82  480.00          0   
-3   0.63  0.74   0.96  0.40  1.03  -0.19   0.77    1.30   1.33    1.93   1.41  1.57    0.36       1         0    -0.32    -0.74   -0.85  500.00          1   
-4  -0.56 -0.46  -0.19 -0.62 -0.37  -0.51  -1.11   -0.99  -0.97   -0.71  -0.95 -0.88   -0.86       1         0     1.84    -0.54   -0.70   91.50          1   
-5   1.29  1.36  -0.87  0.76 -0.02  -0.28   0.77    0.77   0.64   -0.62   0.42  0.02   -0.25       0         1    -0.03     2.09    2.49  750.00          0   
+1  -0.40 -0.31  -0.15 -0.71 -0.22   0.06   1.33    0.50   0.38    0.37   0.18  0.56    0.78       1         1     1.95    -0.01    0.30  475.00          1   
+2   0.27  0.39   0.69  0.35  0.61   1.15  -0.50   -0.10  -0.07    0.30  -0.07  0.11    0.35       0         1     3.14     0.20    0.70  480.00          0   
+3   0.34  0.54   0.85  0.33  0.76   0.00   0.83    1.21   1.26    2.39   1.47  1.85    0.70       1         0    -0.11    -0.18   -0.40  500.00          1   
+4  -0.38 -0.23   0.08 -0.33 -0.12  -0.21  -0.67   -0.50  -0.49   -0.36  -0.52 -0.56   -0.55       1         0     2.78    -0.03   -0.30   91.50          1   
+5   0.74  0.94  -0.38  0.56  0.10  -0.06   0.83    0.81   0.73   -0.27   0.64  0.32    0.08       0         1     0.28     2.04    1.80  750.00          0   
+
+   NEW_Avg_AtBat  NEW_Avg_Hits  NEW_Avg_HmRun  NEW_Avg_Runs  NEW_Avg_RBI  NEW_Avg_Walks  NEW_YEARS_LEVEL_Junior  NEW_YEARS_LEVEL_Mid  NEW_YEARS_LEVEL_Senior  \
+1          -0.44         -0.51          -0.16         -0.69        -0.24          -0.10                       0                    0                       0   
+2           0.96          1.01           1.60          0.95         1.57           2.74                       0                    1                       0   
+3           0.82          0.86           1.54          0.97         1.19           0.15                       0                    0                       0   
+4          -0.67         -0.66          -0.04         -0.66        -0.44          -0.58                       1                    0                       0   
+5           0.29          0.20          -0.51          0.03        -0.21          -0.53                       0                    0                       0   
+
+   NEW_DIV_CAT_Expert-West  NEW_DIV_CAT_Junior-East  NEW_DIV_CAT_Junior-West  NEW_DIV_CAT_Mid-East  NEW_DIV_CAT_Mid-West  NEW_DIV_CAT_Senior-East  \
+1                        1                        0                        0                     0                     0                        0   
+2                        0                        0                        0                     0                     1                        0   
+3                        0                        0                        0                     0                     0                        0   
+4                        0                        1                        0                     0                     0                        0   
+5                        1                        0                        0                     0                     0                        0   
+
+   NEW_DIV_CAT_Senior-West  NEW_PLAYER_PROGRESS_Descend  NEW_PLAYER_PROGRESS_StandA  NEW_PLAYER_PROGRESS_StandN  
+1                        0                            0                           0                           1  
+2                        0                            0                           1                           0  
+3                        0                            0                           0                           1  
+4                        0                            0                           0                           1  
+5                        0                            0                           1                           0  
 '''
 
 #Modelling
@@ -665,7 +789,12 @@ y_pred = linreg_model.predict(X_test)
 linreg_rmse = np.sqrt(mean_squared_error(y_test,y_pred))
 print(linreg_rmse)
 '''
-385.2631012909874
+380.7230893351932
 '''
 print(linreg_model.score(X_train,y_train))
-#0.6208492943425906
+#0.6962264198275222
+print(linreg_model.score(X_test,y_test))
+#0.10443630902217327
+
+print(np.mean(np.sqrt(-cross_val_score(linreg_model, X, y, cv=10, scoring="neg_mean_squared_error"))))
+#320.30945128421337
