@@ -32,3 +32,6 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ## 5. Hafta - Machine Learning
 
+[House Price Prediction with Machine Learning]()
+
+## 6. Hafta - Machine Learning
