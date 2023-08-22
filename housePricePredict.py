@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import cross_validate, cross_val_score
+from sklearn.model_selection import cross_validate, cross_val_score, GridSearchCV
 from sklearn.preprocessing import LabelEncoder
 from lightgbm import LGBMClassifier
 from sklearn.linear_model import LinearRegression
@@ -1472,7 +1472,7 @@ classifiers = [('LR', LinearRegression()),
 for name, regressor in classifiers:
     rmse = np.mean(np.sqrt(-cross_val_score(regressor, X, y, cv=5, scoring="neg_mean_squared_error")))
     print(f"RMSE: {round(rmse, 4)} ({name}) ")
-    
+
 '''
 RMSE: 0.1516 (LR) 
 RMSE: 0.1824 (Lasso) 
@@ -1486,3 +1486,25 @@ RMSE: 0.1312 (GBR)
 RMSE: 0.1444 (XGBoost) 
 RMSE: 0.1345 (LightGBR) 
 '''
+
+lgbm_model = LGBMRegressor(random_state=13)
+
+rmse = np.mean(np.sqrt(-cross_val_score(lgbm_model, X, y, cv=5, scoring="neg_mean_squared_error")))
+print(rmse)         #0.13453001272370504
+
+lgbm_params = {"learning_rate": [0.01, 0.1],
+               "n_estimators": [500, 1500]  }
+
+lgbm_gs_best = GridSearchCV(lgbm_model,
+                            lgbm_params,
+                            cv=3,
+                            n_jobs=-1,
+                            verbose=True).fit(X,y)
+
+final_model = lgbm_model.set_params(**lgbm_gs_best.best_params_).fit(X, y)
+
+rmse = np.mean(np.sqrt(-cross_val_score(final_model, X, y, cv=5, scoring="neg_mean_squared_error")))
+print(rmse)
+'''
+Fitting 3 folds for each of 4 candidates, totalling 12 fits
+0.13353591049173888'''
