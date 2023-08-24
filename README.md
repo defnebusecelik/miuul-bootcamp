@@ -38,7 +38,7 @@ MIUUL Machine Learning bootcamp kapsamında oluşturulan Case Study reposudur.
 
 ![image](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/debec3f2-41b1-4ebb-99cd-64e354691622)
 
-[Telco Churn Machine Learning]()
+[Telco Churn Machine Learning](https://github.com/defnebusecelik/miuul-bootcamp/blob/main/telco_Churn_ML.py)
 
 ![0_8Iu_eymr6eR-YuQw](https://github.com/defnebusecelik/miuul-bootcamp/assets/110555559/7a402175-e6a2-4fcb-9a37-9d33c258853a)
 
