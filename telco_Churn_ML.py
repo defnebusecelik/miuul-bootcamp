@@ -37,7 +37,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
-from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.model_selection import train_test_split, cross_validate, GridSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -893,10 +893,32 @@ Auc: 0.74
 # Adım 2: Seçtiğiniz modeller ile hiperparametre optimizasyonu gerçekleştirin ve bulduğunuz hiparparametreler ile modeli
 # tekrar kurunuz.
 
+rf_model = RandomForestClassifier(random_state=17)
+
+rf_params = {"max_depth": [5, 8, None],
+             "max_features": [3, 5, 7, "auto"],
+             "min_samples_split": [2, 5, 8, 15, 20],
+             "n_estimators": [100, 200, 500]}
+
+rf_best_grid = GridSearchCV(rf_model, rf_params, cv=5, n_jobs=-1, verbose=True).fit(x, y)
+
+rf_best_grid.best_params_
+
+rf_best_grid.best_score_
+
+rf_final = rf_model.set_params(**rf_best_grid.best_params_, random_state=17).fit(x, y)
 
 
+cv_results = cross_validate(rf_final, x, y, cv=10, scoring=["accuracy", "f1", "roc_auc"])
+print(cv_results['test_accuracy'].mean())
+print(cv_results['test_f1'].mean())
+print(cv_results['test_roc_auc'].mean())
 
-
+'''
+0.8030661669890394
+0.575706251561156
+0.8413255839541997
+'''
 
 def plot_importance(model, features, num=len(x_train), save=False):
     feature_imp = pd.DataFrame({'Value': model.feature_importances_, 'Feature': features.columns})
@@ -926,4 +948,3 @@ plot_importance(rf_model, x_train)
 9   0.003884        MultipleLines_No phone service
 15  0.003642      OnlineBackup_No internet service
 '''
-
